@@ -1,5 +1,6 @@
 # Copyright 2011 by Andrew Sczesnak.  All rights reserved.
 # Revisions Copyright 2011 by Peter Cock.  All rights reserved.
+# Revisions Copyright 2016 by Tristan Bitard-Feildel.  Don't care about rights.
 #
 # This code is part of the Biopython distribution and governed by its
 # license.  Please see the LICENSE file that should have been included
