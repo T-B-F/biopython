@@ -315,7 +315,7 @@ class StockholmIterator(AlignmentIterator):
                        "LO": "look"}
 
     _header = None  # for caching lines between __next__ calls
-
+    _cnt = 0
     def __next__(self):
         handle = self.handle
 
@@ -356,6 +356,7 @@ class StockholmIterator(AlignmentIterator):
                 # The "//" line indicates the end of the alignment.
                 # There may still be more meta-data
                 passed_end_alignment = True
+                print(self._cnt)
             elif line == "":
                 # blank line, ignore
                 pass
@@ -425,7 +426,7 @@ class StockholmIterator(AlignmentIterator):
         self.sequences = seqs
         self.seq_annotation = gs
         self.seq_col_annotation = gr
-
+        self._cnt += 1
         if ids and seqs:
 
             if self.records_per_alignment is not None \

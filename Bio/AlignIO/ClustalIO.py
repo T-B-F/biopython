@@ -97,7 +97,7 @@ class ClustalIterator(AlignmentIterator):
             # the previous alignment.
             line = self._header
             self._header = None
-
+        
         if not line:
             raise StopIteration
 

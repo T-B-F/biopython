@@ -19,7 +19,9 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Align.Generic import Alignment
 from Bio.Align import MultipleSeqAlignment
-from .Interfaces import SequentialAlignmentWriter
+from .Interfaces import SequentialAlignmentWriter, AlignmentIterator
+from Bio._py3k import OrderedDict
+
 import shlex
 
 MAFINDEX_VERSION = 1
@@ -91,7 +93,87 @@ class MafWriter(SequentialAlignmentWriter):
 
         return recs_out
         
-def MafIterator(handle, seq_count = None, alphabet = single_letter_alphabet):
+        
+class MafIterator(AlignmentIterator):
+    
+    def __next__(self):
+        handle = self.handle
+
+        annotations = []
+        records = []
+        
+        in_a_bundle = False        
+         
+        passed_end_alignment = False
+        while True:
+            line = handle.readline()
+            #print(line) # DEBUG
+            if not line:
+                break # end of file
+            line = line.strip()  # remove trailing \n
+            
+            if line.startswith("a"):
+                # alignment block
+                if len(line.strip().split()[1:]) != line.count("="):
+                    raise ValueError("Error parsing alignment - invalid key in 'a' line")
+
+                annotations = dict([x.split("=") for x in line.strip().split()[1:]])
+                passed_end_alignment = False
+                
+            elif not line.strip():
+                # empty line indicates the end of an alignment
+                if records:
+                    alignment = MultipleSeqAlignment(records, self.alphabet)
+                    return alignment
+                passed_end_alignment = True
+                records = []
+            elif line.startswith("#"):
+                # ignore comments
+                pass  
+                
+            elif line.startswith("s"):
+                # a sequence start
+                assert not passed_end_alignment
+                line_split = line.split()
+                if len(line_split) != 7:
+                    raise ValueError("Error parsing alignment - 's' line must have 7 fields")
+                # convert MAF-style +/- strand to biopython-stype +1/-1
+                if line_split[4] == "+":
+                    strand = "+1"
+                elif line_split[4] == "-":
+                    strand = "-1"
+                else:
+                    strand = "+1"
+
+                # s (literal), src (ID), start, size, strand, srcSize, text (sequence)
+                anno = {"start": int(line_split[2]),
+                        "size": int(line_split[3]),
+                        "strand": strand,
+                        "srcSize": int(line_split[5])}
+                sequence = line_split[6]
+                # interpret a dot/period to mean same the first sequence
+                if "." in sequence:
+                    if not records:
+                        raise ValueError("Found dot/period in first sequence of alignment")
+                        
+                    ref = str(records[0].seq)
+                    new = []
+                    
+                    for (s, r) in zip(sequence, ref):
+                        new.append(r if s == "." else s)
+                            
+                    sequence = "".join(new)
+                id = line_split[1]
+                records.append(SeqRecord(Seq(sequence, self.alphabet),
+                            id = id,
+                            name = id,
+                            description = "",
+                            annotations = anno))
+            elif line.startswith("e") or line.startswith("i") or line.startswith("q"):
+                # not implemented
+                pass        
+
+def _old_MafIterator(handle, seq_count = None, alphabet = single_letter_alphabet):
     """
     Iterates over lines in a MAF file-like object (handle), yielding
     MultipleSeqAlignment objects. SeqRecord IDs generally correspond to 
