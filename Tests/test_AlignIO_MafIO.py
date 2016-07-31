@@ -1,5 +1,4 @@
-# Copyright 2006-2014 by Peter Cock.  All rights reserved.
-# Revisions copyright 2011 Brandon Invergo. All rights reserved.
+# Copyright 2016 - Tristan Bitard-Feildel.  All rights reserved.
 # This code is part of the Biopython distribution and governed by its
 # license.  Please see the LICENSE file that should have been included
 # as part of this package.
@@ -37,6 +36,7 @@ s hg18.chr7    27707221 13 + 158545518 gcagctgaaaaca
 s panTro1.chr6 28869787 13 + 161576975 gcagctgaaaaca
 s baboon         249182 13 +   4622798 gcagctgaaaaca
 s mm4.chr6     53310102 13 + 151104725 ACAGCTGAAAATA
+
 """
 
 # maf text2 from EPO ?
@@ -83,6 +83,7 @@ class TestMafIO(unittest.TestCase):
         handle = StringIO(maf_text)
         for i, alignment in enumerate(MafIterator(handle)):
             ids = []
+            print(i, alignment._block_lines)
             for record in alignment:
                 ids.append(record.id)
             self.assertEqual(ids, test_ids[i])

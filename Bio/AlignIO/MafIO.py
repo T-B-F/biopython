@@ -96,6 +96,7 @@ class MafWriter(SequentialAlignmentWriter):
         
 class MafIterator(AlignmentIterator):
     
+    _line_num = -1
     def __next__(self):
         handle = self.handle
 
@@ -104,9 +105,11 @@ class MafIterator(AlignmentIterator):
         
         in_a_bundle = False        
          
-        passed_end_alignment = False
+        passed_end_alignment = False       
+        block_num = -1 
         while True:
             line = handle.readline()
+            self._line_num += 1
             #print(line) # DEBUG
             if not line:
                 break # end of file
@@ -114,6 +117,7 @@ class MafIterator(AlignmentIterator):
             
             if line.startswith("a"):
                 # alignment block
+                block_num = self._line_num
                 if len(line.strip().split()[1:]) != line.count("="):
                     raise ValueError("Error parsing alignment - invalid key in 'a' line")
 
@@ -124,9 +128,11 @@ class MafIterator(AlignmentIterator):
                 # empty line indicates the end of an alignment
                 if records:
                     alignment = MultipleSeqAlignment(records, self.alphabet)
+                    alignment._block_lines = (block_num, self._line_num)
                     return alignment
                 passed_end_alignment = True
                 records = []
+                block_num = -1
             elif line.startswith("#"):
                 # ignore comments
                 pass  
@@ -171,106 +177,15 @@ class MafIterator(AlignmentIterator):
                             annotations = anno))
             elif line.startswith("e") or line.startswith("i") or line.startswith("q"):
                 # not implemented
-                pass        
-
-def _old_MafIterator(handle, seq_count = None, alphabet = single_letter_alphabet):
-    """
-    Iterates over lines in a MAF file-like object (handle), yielding
-    MultipleSeqAlignment objects. SeqRecord IDs generally correspond to 
-    species names
-    """
-
-    in_a_bundle = False
-    
-    annotations = []
-    records = []
-    
-    while True:
-        # allows parsing of the last bundle without duplicating code
-        try:
-            line = handle.next()
-        except StopIteration:
-            line = ""
-        
-        if in_a_bundle:
-            if line.startswith("s"):
-                # add a SeqRecord to the bundle
-                line_split = line.strip().split()
-
-                if len(line_split) != 7:
-                    raise ValueError("Error parsing alignment - 's' line must have 7 fields")
-
-                # convert MAF-style +/- strand to biopython-stype +1/-1
-                if line_split[4] == "+":
-                    strand = "+1"
-                elif line_split[4] == "-":
-                    strand = "-1"
-                else:
-                    strand = "+1"
-
-                # s (literal), src (ID), start, size, strand, srcSize, text (sequence)
-                anno = {"start": int(line_split[2]),
-                        "size": int(line_split[3]),
-                        "strand": strand,
-                        "srcSize": int(line_split[5])}
-                        
-                sequence = line_split[6]
-                
-                # interpret a dot/period to mean same the first sequence
-                if "." in sequence:
-                    if not records:
-                        raise ValueError("Found dot/period in first sequence of alignment")
-                        
-                    ref = str(records[0].seq)
-                    new = []
-                    
-                    for (s, r) in zip(sequence, ref):
-                        new.append(r if s == "." else s)
-                             
-                    sequence = "".join(new)
-                    
-                records.append(SeqRecord(Seq(sequence, alphabet),
-                               id = line_split[1],
-                               name = line_split[1],
-                               description = "",
-                               annotations = anno))
-            elif line.startswith("e") or \
-                 line.startswith("i") or \
-                 line.startswith("q"):
-                # not implemented
-                pass
-            elif not line.strip():
-                # end a bundle of records
-                if seq_count is not None:
-                    assert len(records) == seq_count
-                    
-                alignment = MultipleSeqAlignment(records, alphabet)
-                #TODO - Introduce an annotated alignment class?
-                #See also Bio/AlignIO/FastaIO.py for same requirement.        
-                #For now, store the annotation a new private property:
-                alignment._annotations = annotations
-                
-                yield alignment
-                
-                in_a_bundle = False
-                
-                annotations = []
-                records = []
-            else:
-                raise ValueError("Error parsing alignment - unexpected line:\n%s" % (line,))
-        elif line.startswith("a"):
-            # start a bundle of records
-            in_a_bundle = True
-            
-            if len(line.strip().split()[1:]) != line.count("="):
-                raise ValueError("Error parsing alignment - invalid key in 'a' line")
-
-            annotations = dict([x.split("=") for x in line.strip().split()[1:]])
-        elif line.startswith("#"):
-            # ignore comments
-            pass
-        elif not line:
-            break
+                pass   
+        if records != []:
+            # should not but in case MAF file is wrongly formated, 
+            # ie an empty line after the block is MissingPythonDependencyError
+            # resulting in the last block being not returned
+            alignment = MultipleSeqAlignment(records, self.alphabet)
+            alignment._block_lines = (block_num, self._line_num)
+            return alignment
+     
 
 class MafIndex():
     def __init__(self, sqlite_file, maf_file, target_seqname):
