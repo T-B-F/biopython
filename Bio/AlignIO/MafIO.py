@@ -17,7 +17,6 @@ from __future__ import print_function
 from Bio.Alphabet import single_letter_alphabet
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.Align.Generic import Alignment
 from Bio.Align import MultipleSeqAlignment
 from .Interfaces import SequentialAlignmentWriter, AlignmentIterator
 from Bio._py3k import OrderedDict

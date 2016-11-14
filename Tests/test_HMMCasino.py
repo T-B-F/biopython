@@ -37,7 +37,7 @@ from Bio.HMM import Utilities
 
 # whether we should print everything out. Set this to zero for
 # regression testing
-VERBOSE = 0
+VERBOSE = 1
 
 
 # -- set up our alphabets
@@ -149,7 +149,7 @@ baum_welch_mm = mm_builder.get_markov_model()
 standard_mm = mm_builder.get_markov_model()
 
 # get a sequence of rolls to train the markov model with
-rolls, states = generate_rolls(3000)
+rolls, states = generate_rolls(30000)
 
 # predicted_states, prob = my_mm.viterbi(rolls, DiceTypeAlphabet())
 # print("prob: %f" % prob)
@@ -180,7 +180,7 @@ if VERBOSE:
     print(trained_mm.transition_prob)
     print(trained_mm.emission_prob)
 
-test_rolls, test_states = generate_rolls(300)
+test_rolls, test_states = generate_rolls(3000)
 
 predicted_states, prob = trained_mm.viterbi(test_rolls, DiceTypeAlphabet())
 if VERBOSE:
@@ -198,7 +198,7 @@ if VERBOSE:
     print(trained_mm.transition_prob)
     print(trained_mm.emission_prob)
 
-test_rolls, test_states = generate_rolls(300)
+test_rolls, test_states = generate_rolls(3000)
 
 predicted_states, prob = trained_mm.viterbi(test_rolls, DiceTypeAlphabet())
 if VERBOSE:
