@@ -19,7 +19,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Align import MultipleSeqAlignment
 from .Interfaces import SequentialAlignmentWriter, AlignmentIterator
-from Bio._py3k import OrderedDict
+from collections import OrderedDict
 
 import shlex
 
